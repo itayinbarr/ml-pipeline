@@ -394,4 +394,99 @@ For easy code review:
 
 ---
 
+## 🧭 Using This Template For Your Own Project
+
+This template is designed to be adapted quickly to your use case while preserving a clean, reproducible workflow.
+
+### 1) Clone and re-point the repo
+
+1. Clone this repository and rename the folder to your project name
+2. Set a new GitHub remote to your own repository (see “Getting Started → Set New Origin” above)
+
+### 2) Environment and tooling
+
+- Use Python 3.10+
+- Install dev dependencies (formatting, linting, tests, etc.):
+
+```bash
+pip install -e '.[dev]'
+pre-commit install  # Auto-run black + isort on each commit
+pytest -v           # Verify everything is green locally
+```
+
+Notes:
+
+- Local tests enforce Black and isort; CI runs the same checks on push/PR
+- Integration tests are gated after unit/lint checks in CI
+
+### 3) Understand the core components
+
+- `src/experiment/schemas.py`: Pydantic models validate configuration (data/model/training/evaluation/experiment/logging). Start here to define your config surface.
+- `src/experiment/data.py`: Data loading, transforms, splits, and `prepare_data`. Replace MNIST with your data and adapt `create_transforms`, `create_datasets`, and `create_dataloaders`.
+- `src/experiment/models.py`: Model factories (linear/MLP/CNN examples). Add your architectures and extend the factory in `create_model`.
+- `src/experiment/pipeline.py`: Orchestrates end‑to‑end flow (prepare → create model → train → evaluate → save artifacts). Minimal changes usually needed once data/models are wired.
+- `src/experiment/infra.py`: ExCa integration for caching artifacts/metrics and stage wrappers.
+
+### 4) Adapt the configuration
+
+1. Copy or create a config under `configs/` (e.g., `configs/my_experiment.yaml`)
+2. Update fields under `data`, `model`, and `training` to match your use case
+3. Validate quickly:
+
+```bash
+python -m src.cli validate configs/my_experiment.yaml
+```
+
+### 5) Replace the dataset (quick path)
+
+In `src/experiment/data.py`:
+
+- Swap MNIST references for your dataset (e.g., custom `Dataset` implementation)
+- Adjust transforms and shapes
+- Ensure `validate_data_shape` reflects what your model expects
+
+Run the data-only integration test locally by invoking:
+
+```bash
+pytest tests/test_integration.py::TestDataPipelineIntegration -v
+```
+
+### 6) Extend/add models
+
+1. In `schemas.py`, add a new Pydantic model config (e.g., `MyModel`)
+2. In `models.py`, implement a creator (e.g., `create_my_model`)
+3. Add your model type to the factory in `create_model`
+
+Smoke-test model creation:
+
+```bash
+pytest tests/test_models.py -v
+```
+
+### 7) Run the full pipeline
+
+```bash
+python -m src.cli run configs/my_experiment.yaml
+```
+
+Artifacts and metrics are written under `cache/` and `results/`. The pipeline logs key events and saves `training_history` and final metrics for traceability.
+
+### 8) Keep quality gates green
+
+- Auto-format runs on commit (pre-commit)
+- Local tests enforce formatting/import order: `pytest -v`
+- CI (GitHub Actions) runs: lint, black/isort checks, tests with coverage, and staged integration tests
+
+### 9) Common adaptation checklist
+
+- Update `schemas.py` to reflect your configuration needs
+- Replace dataset logic in `data.py`
+- Add or adapt models in `models.py`
+- Tweak training hyperparameters via config (not code) where possible
+- Keep tests green; add unit tests for new components and small integration tests for new workflows
+
+With these pieces in place, you can scale from a simple experiment to a robust, reproducible pipeline without sacrificing clarity or speed.
+
+---
+
 Made by **Itay Inbar**

@@ -105,7 +105,9 @@ jobs:
               'data': {'dataset': 'mnist', 'batch_size': 32},
               'model': {'name': 'linear', 'input_size': 784, 'num_classes': 10},
               'training': {'epochs': 1, 'learning_rate': 0.01},
-              'experiment': {'name': 'test', 'random_seed': 42}
+              'evaluation': {'metrics': ['accuracy']},
+              'experiment': {'name': 'test', 'random_seed': 42},
+              'logging': {'log_every_n_steps': 10}
           }
 
           try:
