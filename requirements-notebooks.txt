@@ -1,0 +1,12 @@
+# Notebook dependencies
+-r requirements.txt
+
+# Jupyter and notebook tools
+jupyter>=1.0.0
+ipykernel>=6.0.0
+nbformat>=5.0.0
+ipywidgets>=8.0.0
+
+# Additional visualization for notebooks
+plotly>=5.0.0
+bokeh>=3.0.0
