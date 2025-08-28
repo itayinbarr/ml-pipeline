@@ -4,23 +4,24 @@ This module tests the main Experiment class and its orchestration
 of the complete ML pipeline using ExCa for caching and reproducibility.
 """
 
-import pytest
-import torch
 import json
 from pathlib import Path
-from unittest.mock import Mock, patch, MagicMock
+from unittest.mock import MagicMock, Mock, patch
 
-from src.experiment.pipeline import Experiment, EarlyStopping
-from src.experiment.schemas import (
-    ExperimentConfig,
-    DataConfig,
-    LinearModel,
-    TrainingConfig,
-    EvaluationConfig,
-    ExperimentMetadata,
-    LoggingConfig,
-)
+import pytest
+import torch
+
 from src.experiment.infra import ExperimentInfra
+from src.experiment.pipeline import EarlyStopping, Experiment
+from src.experiment.schemas import (
+    DataConfig,
+    EvaluationConfig,
+    ExperimentConfig,
+    ExperimentMetadata,
+    LinearModel,
+    LoggingConfig,
+    TrainingConfig,
+)
 
 
 class TestEarlyStopping:
@@ -147,7 +148,7 @@ class TestExperiment:
 
     def test_get_expected_input_shape(self):
         """Test expected input shape for different models."""
-        from src.experiment.schemas import MLPModel, CNNModel
+        from src.experiment.schemas import CNNModel, MLPModel
 
         with patch("src.experiment.pipeline.create_infra"):
             # Linear model

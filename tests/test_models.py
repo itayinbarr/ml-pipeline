@@ -4,29 +4,30 @@ This module tests all model implementations including architecture,
 forward passes, parameter counting, and factory functions.
 """
 
+from unittest.mock import Mock, patch
+
 import pytest
 import torch
 import torch.nn as nn
-from unittest.mock import Mock, patch
 
 from src.experiment.models import (
     BaseModel,
+    CNNClassifier,
     LinearClassifier,
     MLPClassifier,
-    CNNClassifier,
-    create_model,
     count_model_parameters,
-    get_model_summary,
-    validate_model_config,
+    create_model,
     create_optimizer,
     create_scheduler,
+    get_model_summary,
+    validate_model_config,
 )
 from src.experiment.schemas import (
+    CNNModel,
     LinearModel,
     MLPModel,
-    CNNModel,
-    TrainingConfig,
     SchedulerConfig,
+    TrainingConfig,
 )
 
 

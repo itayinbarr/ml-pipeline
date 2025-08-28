@@ -224,12 +224,12 @@ pytest tests/ --cov=src --cov-report=html
 
 ## 🧹 Code Style and Formatting
 
-This repo enforces Black formatting locally via pytest. If files are not formatted, `pytest` will fail.
+This repo enforces Black formatting and isort import ordering locally via pytest. If files are not formatted/sorted, `pytest` will fail.
 
 Recommended commands:
 
 ```bash
-# Install dev dependencies (includes black, isort, flake8, mypy, pytest-black)
+# Install dev dependencies (includes black, isort, flake8, mypy, pytest-black, pytest-isort)
 pip install -e '.[dev]'
 
 # Format code (auto-fix)
@@ -240,7 +240,7 @@ isort src tests
 flake8 src tests
 mypy src
 
-# Run tests (includes a Black check via pytest)
+# Run tests (includes Black and isort checks via pytest)
 pytest -v
 ```
 

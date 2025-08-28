@@ -13,7 +13,6 @@ from typing import Any, Dict, List, Literal, Optional, Union
 import pydantic as pd
 from pydantic import Field
 
-
 # ---- Data Configuration ----
 
 

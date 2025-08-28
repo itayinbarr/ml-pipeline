@@ -12,14 +12,14 @@ from typing import List, Optional
 
 import typer
 import yaml
+from rich import print as rprint
 from rich.console import Console
-from rich.table import Table
 from rich.panel import Panel
 from rich.progress import Progress, SpinnerColumn, TextColumn
-from rich import print as rprint
+from rich.table import Table
 
 # Import experiment components
-from src.experiment import ExperimentConfig, Experiment
+from src.experiment import Experiment, ExperimentConfig
 from src.experiment.schemas import load_config
 
 # Initialize Typer app and Rich console

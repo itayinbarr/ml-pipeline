@@ -4,24 +4,25 @@ This module tests MNIST data loading, preprocessing, and DataLoader creation
 to ensure proper data handling across different configurations.
 """
 
-import pytest
-import torch
-import numpy as np
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+import numpy as np
+import pytest
+import torch
+
 from src.experiment.data import (
     MNISTDataset,
-    create_transforms,
-    create_datasets,
+    compute_class_weights,
     create_dataloaders,
+    create_datasets,
+    create_transforms,
+    flatten_for_linear,
+    get_dataset_stats,
     prepare_data,
     validate_data_shape,
-    flatten_for_linear,
-    compute_class_weights,
-    get_dataset_stats,
 )
-from src.experiment.schemas import DataConfig, DataAugmentationConfig
+from src.experiment.schemas import DataAugmentationConfig, DataConfig
 
 
 class TestMNISTDataset:

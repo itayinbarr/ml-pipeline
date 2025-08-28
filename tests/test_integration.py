@@ -4,18 +4,19 @@ This module tests complete workflows from configuration loading through
 experiment execution, ensuring all components work together correctly.
 """
 
-import pytest
-import yaml
-import tempfile
 import shutil
-import torch
+import tempfile
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from src.experiment.schemas import ExperimentConfig, load_config
-from src.experiment.pipeline import Experiment, run_experiment_from_config
-from src.cli import app
+import pytest
+import torch
+import yaml
 from typer.testing import CliRunner
+
+from src.cli import app
+from src.experiment.pipeline import Experiment, run_experiment_from_config
+from src.experiment.schemas import ExperimentConfig, load_config
 
 
 @pytest.fixture
@@ -182,7 +183,7 @@ class TestModelIntegration:
     def test_model_creation_from_configs(self):
         """Test creating models from different configurations."""
         from src.experiment.models import create_model
-        from src.experiment.schemas import LinearModel, MLPModel, CNNModel
+        from src.experiment.schemas import CNNModel, LinearModel, MLPModel
 
         configs = [
             LinearModel(input_size=784, num_classes=10),
@@ -210,7 +211,7 @@ class TestModelIntegration:
             create_optimizer,
             create_scheduler,
         )
-        from src.experiment.schemas import LinearModel, TrainingConfig, SchedulerConfig
+        from src.experiment.schemas import LinearModel, SchedulerConfig, TrainingConfig
 
         model = create_model(LinearModel())
 

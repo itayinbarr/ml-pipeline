@@ -20,7 +20,7 @@ import torch.nn.functional as F
 from torch.utils.data import DataLoader, Dataset, random_split
 from torchvision import datasets, transforms
 
-from .schemas import DataConfig, DataAugmentationConfig
+from .schemas import DataAugmentationConfig, DataConfig
 
 logger = logging.getLogger(__name__)
 

@@ -4,21 +4,22 @@ This module tests all configuration schemas to ensure proper validation,
 error handling, and default behavior.
 """
 
+from pathlib import Path
+
 import pytest
 import yaml
-from pathlib import Path
 from pydantic import ValidationError
 
 from src.experiment.schemas import (
-    ExperimentConfig,
-    DataConfig,
-    LinearModel,
-    MLPModel,
     CNNModel,
-    TrainingConfig,
+    DataConfig,
     EvaluationConfig,
+    ExperimentConfig,
     ExperimentMetadata,
+    LinearModel,
     LoggingConfig,
+    MLPModel,
+    TrainingConfig,
     load_config,
     save_config,
 )
