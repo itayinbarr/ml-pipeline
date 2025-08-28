@@ -137,7 +137,11 @@ class TestDatasetCreation:
         
         with patch('src.experiment.data.random_split') as mock_split:
             # Mock random_split to return train and val datasets
-            mock_split.return_value = (Mock(), Mock())
+            mock_train_subset = Mock()
+            mock_train_subset.__len__ = Mock(return_value=800)
+            mock_val_subset = Mock()
+            mock_val_subset.__len__ = Mock(return_value=200)
+            mock_split.return_value = (mock_train_subset, mock_val_subset)
             
             train_dataset, val_dataset, test_dataset = create_datasets(
                 config=config,
@@ -314,9 +318,15 @@ class TestDatasetStats:
         sample_labels = torch.randint(0, 10, (50,))
         
         with patch('src.experiment.data.DataLoader') as mock_dataloader_class:
-            mock_dataloader = Mock()
-            mock_dataloader.__iter__ = Mock(return_value=iter([(sample_images, sample_labels)]))
-            mock_dataloader_class.return_value = mock_dataloader
+            # Create a proper iterator mock
+            def mock_dataloader_factory(*args, **kwargs):
+                mock_dataloader = Mock()
+                # Use a proper iterator that returns one batch then stops
+                data_iter = iter([(sample_images, sample_labels)])
+                mock_dataloader.__iter__ = Mock(return_value=data_iter)
+                return mock_dataloader
+            
+            mock_dataloader_class.side_effect = mock_dataloader_factory
             
             datasets = (train_dataset, None, test_dataset)
             stats = get_dataset_stats(datasets)
@@ -344,9 +354,10 @@ class TestDataPipelineIntegration:
         # Mock MNIST dataset
         mock_dataset = Mock()
         mock_dataset.__len__ = Mock(return_value=100)
-        mock_dataset.__getitem__ = Mock(
-            return_value=(torch.randn(1, 28, 28), torch.randint(0, 10, (1,)).item())
-        )
+        # Make the mock dataset subscriptable
+        def mock_getitem(self, idx):
+            return (torch.randn(1, 28, 28), torch.randint(0, 10, (1,)).item())
+        mock_dataset.__getitem__ = mock_getitem
         mock_mnist.return_value = mock_dataset
         
         config = DataConfig(
@@ -357,9 +368,16 @@ class TestDataPipelineIntegration:
         
         # Mock random_split
         with patch('src.experiment.data.random_split') as mock_split:
-            mock_split.return_value = (Mock(), Mock())
-            mock_split.return_value[0].__len__ = Mock(return_value=80)
-            mock_split.return_value[1].__len__ = Mock(return_value=20)
+            # Create proper mock subsets
+            mock_train_subset = Mock()
+            mock_train_subset.__len__ = Mock(return_value=80)
+            mock_train_subset.__getitem__ = lambda self, idx: (torch.randn(1, 28, 28), torch.randint(0, 10, (1,)).item())
+            
+            mock_val_subset = Mock()  
+            mock_val_subset.__len__ = Mock(return_value=20)
+            mock_val_subset.__getitem__ = lambda self, idx: (torch.randn(1, 28, 28), torch.randint(0, 10, (1,)).item())
+            
+            mock_split.return_value = (mock_train_subset, mock_val_subset)
             
             dataloaders, stats = prepare_data(
                 config=config,

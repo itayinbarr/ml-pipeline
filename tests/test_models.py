@@ -150,8 +150,9 @@ class TestMLPClassifier:
         assert isinstance(model, MLPClassifier)
         assert isinstance(model.layers, nn.Sequential)
         
-        # Should have flatten + (linear + activation + dropout) * num_layers + final linear
-        expected_layers = 1 + (3 * config.num_layers) + 1  # flatten + hidden layers + output
+        # Should have (linear + activation + dropout) * num_layers + final linear
+        # flatten is separate from model.layers
+        expected_layers = (3 * config.num_layers) + 1  # hidden layers + output
         assert len(model.layers) == expected_layers
     
     def test_mlp_custom_architecture(self):
@@ -441,11 +442,17 @@ class TestOptimizerCreation:
     
     def test_create_unsupported_optimizer(self):
         """Test error handling for unsupported optimizer."""
+        from unittest.mock import Mock
+        
         model = nn.Linear(10, 2)
-        config = TrainingConfig(optimizer="unsupported_optimizer")
+        # Create mock config with unsupported optimizer
+        mock_config = Mock()
+        mock_config.optimizer = "unsupported_optimizer"
+        mock_config.learning_rate = 0.001
+        mock_config.weight_decay = 0.0
         
         with pytest.raises(ValueError, match="Unsupported optimizer"):
-            create_optimizer(model, config)
+            create_optimizer(model, mock_config)
 
 
 class TestSchedulerCreation:
@@ -491,12 +498,17 @@ class TestSchedulerCreation:
     
     def test_create_unsupported_scheduler(self):
         """Test error handling for unsupported scheduler."""
+        from unittest.mock import Mock
+        
         optimizer = torch.optim.Adam(nn.Linear(10, 2).parameters())
-        scheduler_config = SchedulerConfig(name="unsupported_scheduler")
-        config = TrainingConfig(scheduler=scheduler_config)
+        # Create mock config with unsupported scheduler
+        mock_config = Mock()
+        mock_scheduler_config = Mock()
+        mock_scheduler_config.name = "unsupported_scheduler"
+        mock_config.scheduler = mock_scheduler_config
         
         with pytest.raises(ValueError, match="Unsupported scheduler"):
-            create_scheduler(optimizer, config)
+            create_scheduler(optimizer, mock_config)
 
 
 @pytest.mark.integration  

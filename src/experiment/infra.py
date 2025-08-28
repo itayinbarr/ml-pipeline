@@ -63,13 +63,16 @@ class ExperimentInfra:
                 return processed_data
         """
         def decorator(func: Callable[..., T]) -> Callable[..., T]:
-            @self.task_infra.apply
+            # Store the original function and stage name for the cached wrapper
+            original_func = func
+            cached_stage_name = stage_name
+            
             def cached_func(*args, **kwargs) -> T:
-                logger.info(f"Running cached stage: {stage_name}")
+                logger.info(f"Running cached stage: {cached_stage_name}")
                 start_time = time.time()
-                result = func(*args, **kwargs)
+                result = original_func(*args, **kwargs)
                 duration = time.time() - start_time
-                logger.info(f"Stage {stage_name} completed in {duration:.2f}s")
+                logger.info(f"Stage {cached_stage_name} completed in {duration:.2f}s")
                 return result
             
             cached_func.__name__ = f"{func.__name__}_{stage_name}"
@@ -93,26 +96,21 @@ class ExperimentInfra:
         Returns:
             Path where the artifact was saved
         """
-        @self.task_infra.apply
-        def _save_artifact(artifact, name, metadata):
-            import pickle
-            
-            # Save the main artifact
-            artifact_path = self.cache_dir / f"{name}.pkl"
-            with open(artifact_path, 'wb') as f:
-                pickle.dump(artifact, f)
-            
-            # Save metadata if provided
-            if metadata:
-                metadata_path = self.cache_dir / f"{name}_metadata.json"
-                with open(metadata_path, 'w') as f:
-                    json.dump(metadata, f, indent=2, default=str)
-            
-            logger.info(f"Saved artifact: {artifact_path}")
-            return str(artifact_path)
+        import pickle
         
-        result_path = _save_artifact(artifact, name, metadata or {})
-        return Path(result_path)
+        # Save the main artifact
+        artifact_path = self.cache_dir / f"{name}.pkl"
+        with open(artifact_path, 'wb') as f:
+            pickle.dump(artifact, f)
+        
+        # Save metadata if provided
+        if metadata:
+            metadata_path = self.cache_dir / f"{name}_metadata.json"
+            with open(metadata_path, 'w') as f:
+                json.dump(metadata, f, indent=2, default=str)
+        
+        logger.info(f"Saved artifact: {artifact_path}")
+        return artifact_path
     
     def load_artifact(self, name: str) -> Any:
         """Load a previously saved artifact.

@@ -50,15 +50,15 @@ class TestEarlyStopping:
     
     def test_early_stopping_no_improvement(self):
         """Test early stopping with no improvement."""
-        early_stop = EarlyStopping(patience=2, min_delta=0.01)
+        early_stop = EarlyStopping(patience=3, min_delta=0.01)
         
         # Initial improvement
         assert early_stop(0.5) is False
         
         # No significant improvement (within min_delta)
         assert early_stop(0.505) is False  # counter = 1
-        assert early_stop(0.504) is False  # counter = 2
-        assert early_stop(0.503) is True   # Should trigger early stopping
+        assert early_stop(0.504) is False  # counter = 2  
+        assert early_stop(0.503) is True   # counter = 3, triggers early stopping
         
         assert early_stop.early_stop is True
     
@@ -118,8 +118,9 @@ class TestExperiment:
         
         with patch('src.experiment.pipeline.create_infra'):
             with patch('torch.cuda.is_available', return_value=False):
-                experiment = Experiment(config)
-                assert experiment.device.type == "cpu"
+                with patch('torch.backends.mps.is_available', return_value=False):
+                    experiment = Experiment(config)
+                    assert experiment.device.type == "cpu"
     
     @patch('torch.cuda.is_available', return_value=True)
     def test_device_setup_cuda_available(self, mock_cuda):
@@ -146,6 +147,8 @@ class TestExperiment:
     
     def test_get_expected_input_shape(self):
         """Test expected input shape for different models."""
+        from src.experiment.schemas import MLPModel, CNNModel
+        
         with patch('src.experiment.pipeline.create_infra'):
             # Linear model
             config = self.create_minimal_config()
@@ -154,14 +157,14 @@ class TestExperiment:
             assert experiment._get_expected_input_shape() == (784,)
             
             # MLP model  
-            config.model = {"name": "mlp", "input_size": 784, "hidden_size": 128}
-            config = ExperimentConfig(**config.model_dump())
+            config = self.create_minimal_config()
+            config.model = MLPModel(hidden_size=128)
             experiment = Experiment(config)
             assert experiment._get_expected_input_shape() == (784,)
             
             # CNN model
-            config.model = {"name": "cnn", "input_channels": 1, "channels": [32, 64]}
-            config = ExperimentConfig(**config.model_dump())
+            config = self.create_minimal_config()
+            config.model = CNNModel(channels=[32, 64])
             experiment = Experiment(config)
             assert experiment._get_expected_input_shape() == (1, 28, 28)
     
@@ -306,8 +309,8 @@ class TestTrainingLoop:
             dataloader = self.create_mock_dataloader()
             
             with patch('torch.nn.CrossEntropyLoss') as mock_loss:
-                with patch('sklearn.metrics.accuracy_score', return_value=0.75):
-                    with patch('sklearn.metrics.f1_score', return_value=0.7):
+                with patch('src.experiment.pipeline.accuracy_score', return_value=0.75):
+                    with patch('src.experiment.pipeline.f1_score', return_value=0.7):
                         mock_loss_fn = Mock()
                         mock_loss_value = Mock()
                         mock_loss_value.item.return_value = 0.3
@@ -358,10 +361,18 @@ class TestExperimentRun:
             "train": Mock(),
             "test": Mock()
         }
-        mock_prepare_data.return_value = mock_dataloaders
+        mock_stats = {"train": {"num_samples": 100}}
+        mock_prepare_data.return_value = (mock_dataloaders, mock_stats)
         
         mock_model = Mock()
         mock_model.to.return_value = mock_model
+        # Mock parameters() method for model summary
+        mock_param = Mock()
+        mock_param.numel.return_value = 1000
+        mock_param.requires_grad = True
+        mock_model.parameters.return_value = [mock_param]
+        # Mock model info method
+        mock_model.get_model_info.return_value = {"model_class": "MockModel"}
         mock_model_fn.return_value = mock_model
         
         mock_optimizer = Mock()
@@ -374,6 +385,10 @@ class TestExperimentRun:
             mock_infra.save_artifact.return_value = Path("test/result.pkl")
             mock_infra.save_metrics.return_value = Path("test/metrics.json")
             mock_infra.record_run.return_value = Path("test/run.json")
+            # Make cached_stage not cache but pass through
+            mock_cached_stage = Mock()
+            mock_cached_stage.side_effect = lambda name: lambda func: lambda: func()
+            mock_infra.cached_stage = mock_cached_stage
             mock_create_infra.return_value = mock_infra
             
             experiment = Experiment(config)
@@ -381,10 +396,11 @@ class TestExperimentRun:
             # Mock training and evaluation
             with patch.object(experiment, 'train') as mock_train:
                 with patch.object(experiment, 'evaluate') as mock_evaluate:
-                    mock_train.return_value = {"train_loss": [0.5], "train_accuracy": [0.8]}
-                    mock_evaluate.return_value = {"accuracy": 0.85, "loss": 0.3}
-                    
-                    results = experiment.run()
+                    with patch('src.experiment.pipeline.validate_data_shape', return_value=True):
+                        mock_train.return_value = {"train_loss": [0.5], "train_accuracy": [0.8]}
+                        mock_evaluate.return_value = {"accuracy": 0.85, "loss": 0.3}
+                        
+                        results = experiment.run()
                     
                     # Verify pipeline was executed
                     mock_prepare_data.assert_called_once()
@@ -408,6 +424,10 @@ class TestExperimentRun:
         with patch('src.experiment.pipeline.create_infra') as mock_create_infra:
             mock_infra = Mock()
             mock_infra.save_artifact.return_value = Path("test/error.pkl")
+            # Make cached_stage not cache but pass through the exception
+            mock_cached_stage = Mock()
+            mock_cached_stage.side_effect = lambda name: lambda func: lambda: func()
+            mock_infra.cached_stage = mock_cached_stage
             mock_create_infra.return_value = mock_infra
             
             experiment = Experiment(config)

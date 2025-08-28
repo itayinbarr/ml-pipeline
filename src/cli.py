@@ -19,8 +19,8 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich import print as rprint
 
 # Import experiment components
-from experiment import ExperimentConfig, Experiment
-from experiment.schemas import load_config
+from src.experiment import ExperimentConfig, Experiment
+from src.experiment.schemas import load_config
 
 # Initialize Typer app and Rich console
 app = typer.Typer(

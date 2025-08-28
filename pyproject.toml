@@ -82,6 +82,9 @@ run-experiment = "src.cli:main"
 [tool.hatch.version]
 path = "src/experiment/__init__.py"
 
+[tool.hatch.build.targets.wheel]
+packages = ["src"]
+
 [tool.hatch.build.targets.sdist]
 include = [
     "/src",

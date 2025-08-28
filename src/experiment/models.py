@@ -394,6 +394,11 @@ def validate_model_config(config: ModelConfig, input_shape: Tuple[int, ...]) -> 
                 logger.error(f"CNNModel channel mismatch: config={config.input_channels}, input={input_shape[0]}")
                 return False
         
+        else:
+            # Invalid config type
+            logger.error(f"Invalid model config type: {type(config)}")
+            return False
+        
         logger.info(f"Model configuration validation passed for {type(config).__name__}")
         return True
         

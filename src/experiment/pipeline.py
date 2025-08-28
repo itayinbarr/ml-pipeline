@@ -194,7 +194,7 @@ class Experiment:
         self.scheduler = create_scheduler(self.optimizer, self.config.training)
         
         logger.info(f"Created {self.config.training.optimizer} optimizer")
-        if self.scheduler:
+        if self.scheduler and self.config.training.scheduler:
             logger.info(f"Created {self.config.training.scheduler.name} scheduler")
     
     def train_epoch(self, dataloader: DataLoader) -> Dict[str, float]:
@@ -240,8 +240,8 @@ class Experiment:
                 })
         
         metrics = {
-            'loss': total_loss / len(dataloader),
-            'accuracy': correct / total
+            'loss': total_loss / len(dataloader) if len(dataloader) > 0 else 0.0,
+            'accuracy': correct / total if total > 0 else 0.0
         }
         
         return metrics

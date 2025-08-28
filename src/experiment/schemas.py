@@ -25,7 +25,7 @@ class DataConfig(pd.BaseModel):
     """
     
     dataset: Literal["mnist"] = "mnist"
-    batch_size: int = Field(64, gt=0, description="Batch size for training and evaluation")
+    batch_size: int = Field(64, description="Batch size for training and evaluation")
     validation_split: float = Field(0.1, ge=0.0, le=0.5, description="Fraction of training data for validation")
     num_workers: int = Field(0, ge=0, description="Number of data loader workers")
     shuffle: bool = Field(True, description="Whether to shuffle training data")
@@ -327,7 +327,19 @@ def save_config(config: ExperimentConfig, output_path: Union[str, Path]) -> None
     """
     import yaml
     
-    config_dict = config.model_dump()
+    config_dict = config.model_dump(mode='python')
+    
+    # Convert Path objects to strings for YAML serialization
+    def convert_paths(obj):
+        if isinstance(obj, dict):
+            return {k: convert_paths(v) for k, v in obj.items()}
+        elif isinstance(obj, list):
+            return [convert_paths(item) for item in obj]
+        elif isinstance(obj, Path):
+            return str(obj)
+        return obj
+    
+    config_dict = convert_paths(config_dict)
     
     with open(output_path, 'w') as f:
         yaml.dump(config_dict, f, default_flow_style=False, indent=2)

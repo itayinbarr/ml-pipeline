@@ -8,6 +8,7 @@ import pytest
 import yaml
 import tempfile
 import shutil
+import torch
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -153,12 +154,11 @@ class TestDataPipelineIntegration:
         # Mock MNIST dataset
         mock_dataset = Mock()
         mock_dataset.__len__ = Mock(return_value=100)
-        mock_dataset.__getitem__ = Mock(
-            return_value=(
-                torch.randn(1, 28, 28), 
-                torch.randint(0, 10, (1,)).item()
-            )
-        )
+        
+        # Make the mock dataset subscriptable
+        def mock_getitem(self, idx):
+            return (torch.randn(1, 28, 28), torch.randint(0, 10, (1,)).item())
+        mock_dataset.__getitem__ = mock_getitem
         mock_mnist.return_value = mock_dataset
         
         config = load_config(sample_config)
@@ -167,14 +167,17 @@ class TestDataPipelineIntegration:
             # Mock train/val split
             mock_train = Mock()
             mock_train.__len__ = Mock(return_value=80)
+            mock_train.__getitem__ = lambda self, idx: mock_getitem(self, idx)
             mock_val = Mock() 
             mock_val.__len__ = Mock(return_value=20)
+            mock_val.__getitem__ = lambda self, idx: mock_getitem(self, idx)
             mock_split.return_value = (mock_train, mock_val)
             
             from src.experiment.data import prepare_data
             
             dataloaders, stats = prepare_data(
                 config=config.data,
+                augmentation_config=None,
                 data_dir=Path("test_data")
             )
             
@@ -280,10 +283,15 @@ class TestExperimentIntegration:
         
         with patch('src.experiment.data.random_split') as mock_split:
             # Mock small train/val split
+            def mock_getitem_small(idx):
+                return (torch.randn(1, 28, 28), torch.randint(0, 10, (1,)).item())
+            
             mock_train = Mock()
             mock_train.__len__ = Mock(return_value=12)
+            mock_train.__getitem__ = lambda self, idx: mock_getitem_small(idx)
             mock_val = Mock()
-            mock_val.__len__ = Mock(return_value=4) 
+            mock_val.__len__ = Mock(return_value=4)
+            mock_val.__getitem__ = lambda self, idx: mock_getitem_small(idx)
             mock_split.return_value = (mock_train, mock_val)
             
             # Create experiment
@@ -468,21 +476,21 @@ class TestRealDataIntegration:
 class TestErrorHandling:
     """Test error handling in integration scenarios."""
     
-    def test_experiment_graceful_failure(self, sample_config, temp_workspace):
+    @patch('src.experiment.pipeline.prepare_data')
+    def test_experiment_graceful_failure(self, mock_prepare_data, sample_config, temp_workspace):
         """Test that experiments fail gracefully with proper error messages."""
         config = load_config(sample_config)
         
         # Force an error in data preparation
-        with patch('src.experiment.data.prepare_data') as mock_prepare_data:
-            mock_prepare_data.side_effect = Exception("Simulated data error")
-            
-            experiment = Experiment.from_config(config)
-            
-            with pytest.raises(Exception, match="Simulated data error"):
-                experiment.run()
-            
-            # Should have saved error information
-            # (This would be verified by checking the error artifact)
+        mock_prepare_data.side_effect = Exception("Simulated data error")
+        
+        experiment = Experiment.from_config(config)
+        
+        with pytest.raises(Exception, match="Simulated data error"):
+            experiment.run()
+        
+        # Should have saved error information
+        # (This would be verified by checking the error artifact)
     
     def test_invalid_device_handling(self, temp_workspace):
         """Test handling of invalid device specifications."""
