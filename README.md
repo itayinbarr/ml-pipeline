@@ -222,6 +222,36 @@ pytest tests/ -m integration   # Integration tests only
 pytest tests/ --cov=src --cov-report=html
 ```
 
+## 🧹 Code Style and Formatting
+
+This repo enforces Black formatting locally via pytest. If files are not formatted, `pytest` will fail.
+
+Recommended commands:
+
+```bash
+# Install dev dependencies (includes black, isort, flake8, mypy, pytest-black)
+pip install -e '.[dev]'
+
+# Format code (auto-fix)
+black src tests
+isort src tests
+
+# Linting and type checks
+flake8 src tests
+mypy src
+
+# Run tests (includes a Black check via pytest)
+pytest -v
+```
+
+Optional: enable pre-commit hooks for automatic formatting and linting on commit.
+
+```bash
+pre-commit install
+# Run all hooks on the repo
+pre-commit run --all-files
+```
+
 ### Test Categories
 
 - **Unit tests**: Test individual components in isolation
