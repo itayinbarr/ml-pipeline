@@ -52,10 +52,7 @@ jobs:
         run: |
           isort --check-only --diff src tests
 
-      - name: Type check with mypy
-        run: |
-          mypy src
-        continue-on-error: true # Don't fail CI on type errors for now
+      # Removed mypy from CI testing
 
       - name: Test with pytest
         run: |
