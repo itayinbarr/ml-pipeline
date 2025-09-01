@@ -17,7 +17,7 @@ from pydantic import Field
 
 
 class DataConfig(pd.BaseModel):
-    """Configuration for dataset loading and preprocessing. Added some text
+    """Configuration for dataset loading and preprocessing.
 
 
     Validates MNIST-specific parameters and ensures consistent data handling
@@ -29,7 +29,7 @@ class DataConfig(pd.BaseModel):
     validation_split: float = Field(
         0.1, ge=0.0, le=0.5, description="Fraction of training data for validation"
     )
-    num_workers: int = Field(0, ge=1, description="Number of data loader workers")
+    num_workers: int = Field(0, ge=0, description="Number of data loader workers")
     shuffle: bool = Field(True, description="Whether to shuffle training data")
     pin_memory: bool = Field(False, description="Whether to pin memory in data loader")
     download: bool = Field(True, description="Whether to download dataset if not found")
