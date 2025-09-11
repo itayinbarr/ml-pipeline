@@ -156,7 +156,8 @@ class Experiment:
             logger.info("Data preparation completed")
             return dataloaders
 
-        return _prepare_data()
+        # Include config in cache key context (without changing function signature)
+        return _prepare_data(_cache_context=self.config.model_dump())
 
     def _get_expected_input_shape(self) -> Tuple[int, ...]:
         """Get expected input shape based on model type."""

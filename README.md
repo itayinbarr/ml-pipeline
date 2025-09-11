@@ -293,6 +293,23 @@ The template uses ExCa for caching and reproducibility:
 
 Cache artifacts are stored in `cache/` (git-ignored) with full provenance tracking.
 
+### Caching behavior
+
+- Stages decorated with `infra.cached_stage(name)` are cached on disk using a hash of `{experiment, stage, context}`.
+- The data preparation stage provides `_cache_context=self.config.model_dump()` so any config change invalidates the cache.
+- You can influence the key in custom cached stages by passing `_cache_context=...`:
+
+  ```python
+  @infra.cached_stage("precompute_features")
+  def precompute():
+      return expensive_result
+
+  # Hit cache next time when context matches
+  res = precompute(_cache_context={"dataset": "mnist", "ver": 1})
+  ```
+
+- Non-picklable results are computed normally and skipped from caching (with a meta file recorded for observability).
+
 ## 📈 Continuous Integration
 
 GitHub Actions automatically:
