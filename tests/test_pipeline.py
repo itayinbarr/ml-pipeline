@@ -398,9 +398,18 @@ class TestExperimentRun:
             mock_infra.save_artifact.return_value = Path("test/result.pkl")
             mock_infra.save_metrics.return_value = Path("test/metrics.json")
             mock_infra.record_run.return_value = Path("test/run.json")
-            # Make cached_stage not cache but pass through
-            mock_cached_stage = Mock()
-            mock_cached_stage.side_effect = lambda name: lambda func: lambda: func()
+
+            # Make cached_stage not cache but pass through, preserving kwargs
+            def mock_cached_stage(stage_name):
+                def decorator(func):
+                    def wrapper(*args, **kwargs):
+                        kwargs.pop("_cache_context", None)
+                        return func(*args, **kwargs)
+
+                    return wrapper
+
+                return decorator
+
             mock_infra.cached_stage = mock_cached_stage
             mock_create_infra.return_value = mock_infra
 
@@ -444,9 +453,18 @@ class TestExperimentRun:
         with patch("src.experiment.pipeline.create_infra") as mock_create_infra:
             mock_infra = Mock()
             mock_infra.save_artifact.return_value = Path("test/error.pkl")
-            # Make cached_stage not cache but pass through the exception
-            mock_cached_stage = Mock()
-            mock_cached_stage.side_effect = lambda name: lambda func: lambda: func()
+
+            # Make cached_stage not cache but pass through, preserving kwargs
+            def mock_cached_stage(stage_name):
+                def decorator(func):
+                    def wrapper(*args, **kwargs):
+                        kwargs.pop("_cache_context", None)
+                        return func(*args, **kwargs)
+
+                    return wrapper
+
+                return decorator
+
             mock_infra.cached_stage = mock_cached_stage
             mock_create_infra.return_value = mock_infra
 
@@ -501,10 +519,14 @@ class TestExperimentIntegration:
         with patch("src.experiment.pipeline.create_infra") as mock_create_infra:
             mock_infra = Mock()
 
-            # Mock the cached_stage decorator
+            # Mock the cached_stage decorator, preserving args/kwargs
             def mock_cached_stage(stage_name):
                 def decorator(func):
-                    return func  # Return function unchanged for test
+                    def wrapper(*args, **kwargs):
+                        kwargs.pop("_cache_context", None)
+                        return func(*args, **kwargs)
+
+                    return wrapper
 
                 return decorator
 

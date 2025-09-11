@@ -22,7 +22,19 @@ from src.experiment.data import (
     prepare_data,
     validate_data_shape,
 )
-from src.experiment.schemas import DataAugmentationConfig, DataConfig
+from src.experiment.pipeline import Experiment
+from src.experiment.schemas import (
+    CNNModel,
+    DataAugmentationConfig,
+    DataConfig,
+    EvaluationConfig,
+    ExperimentConfig,
+    ExperimentMetadata,
+    LinearModel,
+    LoggingConfig,
+    MLPModel,
+    TrainingConfig,
+)
 
 
 class TestMNISTDataset:
@@ -339,6 +351,94 @@ class TestDatasetStats:
         assert "label_distribution" in train_stats
 
 
+# ---- Real-data integration tests via pipeline (no mocks) ----
+
+
+def _make_base_config(model_config):
+    return ExperimentConfig(
+        data=DataConfig(batch_size=32, validation_split=0.1, download=True),
+        model=model_config,
+        training=TrainingConfig(epochs=1),
+        evaluation=EvaluationConfig(metrics=["accuracy"]),
+        experiment=ExperimentMetadata(name="real_data_pipeline_test", device="cpu"),
+        logging=LoggingConfig(log_every_n_steps=10),
+    )
+
+
+def _prepare_or_skip(experiment: Experiment):
+    try:
+        return experiment.prepare_data()
+    except Exception as e:
+        pytest.skip(f"Real MNIST unavailable or download failed: {e}")
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+def test_pipeline_prepare_data_linear_real_shapes_and_stats():
+    """Linear model should receive flattened vectors with real MNIST data."""
+    config = _make_base_config(LinearModel())
+    exp = Experiment.from_config(config)
+
+    dataloaders = _prepare_or_skip(exp)
+
+    batch_images, batch_labels = next(iter(dataloaders["train"]))
+
+    # Shapes for flattened MNIST
+    assert batch_images.dim() == 2
+    assert batch_images.shape[1] == 784
+
+    # Labels should be in [0, 9]
+    assert batch_labels.dtype == torch.long
+    assert int(batch_labels.min()) >= 0
+    assert int(batch_labels.max()) <= 9
+
+    # Basic normalized stats (roughly centered, unit-ish variance)
+    mean = float(batch_images.mean())
+    std = float(batch_images.std())
+    assert abs(mean) < 0.5
+    assert 0.5 < std < 1.5
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+def test_pipeline_prepare_data_cnn_real_shapes():
+    """CNN model should receive image-shaped tensors with real MNIST data."""
+    config = _make_base_config(CNNModel())
+    exp = Experiment.from_config(config)
+
+    dataloaders = _prepare_or_skip(exp)
+
+    batch_images, batch_labels = next(iter(dataloaders["train"]))
+
+    # Shapes for MNIST images
+    assert batch_images.dim() == 4
+    assert batch_images.shape[1:] == (1, 28, 28)
+
+    # Labels in [0, 9]
+    assert int(batch_labels.min()) >= 0
+    assert int(batch_labels.max()) <= 9
+
+
+@pytest.mark.integration
+@pytest.mark.slow
+def test_pipeline_prepare_data_mlp_real_shapes():
+    """MLP model should also receive flattened vectors with real MNIST data."""
+    config = _make_base_config(MLPModel())
+    exp = Experiment.from_config(config)
+
+    dataloaders = _prepare_or_skip(exp)
+
+    batch_images, batch_labels = next(iter(dataloaders["train"]))
+
+    # Shapes for flattened MNIST
+    assert batch_images.dim() == 2
+    assert batch_images.shape[1] == 784
+
+    # Labels range
+    assert int(batch_labels.min()) >= 0
+    assert int(batch_labels.max()) <= 9
+
+
 @pytest.mark.integration
 class TestDataPipelineIntegration:
     """Integration tests for the complete data pipeline."""
@@ -411,6 +511,31 @@ class TestDataPipelineIntegration:
 
         assert train_transforms is not None
         assert test_transforms is not None
+
+    @patch("src.experiment.data.datasets.MNIST")
+    def test_prepare_data_with_flatten_flag(self, mock_mnist):
+        """prepare_data should return flattened tensors when flatten=True."""
+        # Mock MNIST dataset to return image tensors in (1, 28, 28)
+        mock_dataset = Mock()
+        mock_dataset.__len__ = Mock(return_value=20)
+
+        def mock_getitem(self, idx):
+            return (torch.randn(1, 28, 28), torch.randint(0, 10, (1,)).item())
+
+        mock_dataset.__getitem__ = mock_getitem
+        mock_mnist.return_value = mock_dataset
+
+        config = DataConfig(batch_size=8, validation_split=0.0, download=False)
+
+        dataloaders, _ = prepare_data(
+            config=config, data_dir=Path("test_data"), flatten=True
+        )
+
+        batch_images, batch_labels = next(iter(dataloaders["train"]))
+
+        # Expect flattened vectors (B, 784)
+        assert batch_images.dim() == 2
+        assert batch_images.shape[1] == 784
 
 
 @pytest.mark.slow
