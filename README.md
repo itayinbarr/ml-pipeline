@@ -84,57 +84,78 @@ pip install -r requirements.txt
 
 ### Development Workflow
 
-This project follows a **branch-based development workflow**:
+This project uses a simple branch strategy with `main` and short‑lived `feature/*` branches.
 
 #### 🌿 Branch Strategy
 
-- **`main`**: Production-ready, stable code
-- **`dev`**: Integration branch for new features
-- **`feature/*`**: Individual feature development
+- `main`: Stable, production‑ready code
+- `feature/<name>`: Individual feature branches created off `main`
 
-#### 📝 Development Process
+#### 📝 Development Process (copy‑paste friendly)
 
-1. **Create a feature branch** from `dev`:
+1) Create a new feature branch from `main`:
 
    ```bash
-   git checkout dev
-   git pull origin dev
+   git checkout main
+   git pull origin main
    git checkout -b feature/your-feature-name
    ```
 
-2. **Develop your feature**:
+2) Develop your changes:
 
-   - Write code following the existing patterns
-   - Add tests for new functionality
-   - Update documentation as needed
+- Implement the change.
+- Adapt or add tests in the relevant places (under `tests/`).
+- Update docs if behavior or CLI changes.
 
-3. **Test locally**:
+3) Run checks locally:
 
    ```bash
    # Run tests
-   pytest tests/ -v
+   pytest -v
 
-   # Check code formatting
-   black --check src tests
-   isort --check-only src tests
-
-   # Type checking
+   # Format/lint/type
+   black src tests
+   isort src tests
+   flake8 src tests
    mypy src
    ```
 
-4. **Push and create PR**:
+4) Stage and commit with a clear, formatted message (Conventional Commits):
 
    ```bash
-   git push origin feature/your-feature-name
+   # Stage relevant changes
+   git add src/ tests/ configs/ README.md
+
+   # Example commit messages
+   git commit -m "feat: add MNIST flattening in data pipeline" \
+               -m "Adds flatten flag in data prep and pipeline wiring; updates/adds tests."
+   # or
+   git commit -m "fix: correct input shape validation for linear models"
    ```
 
-   - Create a Pull Request to `dev` branch
-   - Wait for CI tests to pass
-   - Request code review
+5) Push your branch:
 
-5. **Merge to main**:
-   - After review, merge `dev` → `main`
-   - CI will run full integration tests
+   ```bash
+   git push -u origin feature/your-feature-name
+   ```
+
+6) Open a Pull Request in your Git web UI:
+
+- Click the purple “Create PR” (from `feature/your-feature-name` → `main`).
+- Title: concise summary of the change.
+- Description: what you did, why, and what tests you added/updated.
+- Ensure there are no merge conflicts.
+
+7) Merge and clean up:
+
+- Merge the PR and delete the remote branch (or wait for approval if preferred).
+- Sync your local `main` and delete your local feature branch:
+
+  ```bash
+  git checkout main
+  git pull origin main
+  git branch -d feature/your-feature-name
+  ```
 
 ## 🔧 Usage
 

@@ -165,6 +165,8 @@ def create_datasets(
     config: DataConfig,
     augmentation_config: Optional[DataAugmentationConfig] = None,
     data_dir: Path = Path("data/raw"),
+    *,
+    flatten: bool = False,
 ) -> Tuple[Dataset, Dataset, Dataset]:
     """Create train, validation, and test datasets.
 
@@ -189,7 +191,7 @@ def create_datasets(
         root=data_dir,
         train=True,
         transform=train_transforms,
-        flatten=False,  # Will be handled by model
+        flatten=flatten,
         download=config.download,
     )
 
@@ -198,7 +200,7 @@ def create_datasets(
         root=data_dir,
         train=False,
         transform=test_transforms,
-        flatten=False,
+        flatten=flatten,
         download=config.download,
     )
 
@@ -325,6 +327,8 @@ def prepare_data(
     config: DataConfig,
     augmentation_config: Optional[DataAugmentationConfig] = None,
     data_dir: Path = Path("data/raw"),
+    *,
+    flatten: bool = False,
 ) -> Tuple[Dict[str, DataLoader], Dict[str, Dict[str, float]]]:
     """Complete data preparation pipeline.
 
@@ -342,7 +346,10 @@ def prepare_data(
 
     # Create datasets
     datasets = create_datasets(
-        config=config, augmentation_config=augmentation_config, data_dir=data_dir
+        config=config,
+        augmentation_config=augmentation_config,
+        data_dir=data_dir,
+        flatten=flatten,
     )
 
     # Create dataloaders

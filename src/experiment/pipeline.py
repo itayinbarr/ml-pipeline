@@ -138,11 +138,15 @@ class Experiment:
         def _prepare_data():
             logger.info("Preparing data...")
 
+            # Determine if inputs should be flattened based on model type
+            model_expects_flat = self._get_expected_input_shape() == (784,)
+
             # Prepare data using configuration
             dataloaders, stats = prepare_data(
                 config=self.config.data,
                 augmentation_config=self.config.data_augmentation,
                 data_dir=Path("data/raw"),
+                flatten=model_expects_flat,
             )
 
             # Validate data shapes match model expectations
