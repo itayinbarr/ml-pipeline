@@ -6,8 +6,10 @@ handling caching, artifact storage, and run provenance tracking.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
+import pickle
 import time
 from dataclasses import dataclass
 from pathlib import Path
@@ -66,16 +68,95 @@ class ExperimentInfra:
         """
 
         def decorator(func: Callable[..., T]) -> Callable[..., T]:
-            # Store the original function and stage name for the cached wrapper
             original_func = func
             cached_stage_name = stage_name
 
             def cached_func(*args, **kwargs) -> T:
-                logger.info(f"Running cached stage: {cached_stage_name}")
+                # Ensure TaskInfra is initialized (tracks folder/provenance)
+                _ = self.task_infra
+
+                # Allow callers to pass an optional context for cache keying
+                cache_context = kwargs.pop("_cache_context", None)
+
+                key_payload = {
+                    "experiment": self.experiment_name,
+                    "stage": cached_stage_name,
+                    "context": cache_context,
+                }
+                try:
+                    key_json = json.dumps(key_payload, sort_keys=True, default=str)
+                except Exception:
+                    key_json = str(key_payload)
+
+                cache_hash = hashlib.sha256(key_json.encode("utf-8")).hexdigest()[:16]
+                cache_base = f"{cached_stage_name}_{cache_hash}"
+                cache_file = self.cache_dir / f"{cache_base}.pkl"
+                meta_file = self.cache_dir / f"{cache_base}.json"
+
+                # Try loading from cache
+                if cache_file.exists():
+                    try:
+                        with open(cache_file, "rb") as f:
+                            result = pickle.load(f)
+                        logger.info(
+                            f"Loaded cached result for {cached_stage_name} ({cache_hash})"
+                        )
+                        return result
+                    except Exception as e:
+                        logger.warning(
+                            f"Failed to load cache for {cached_stage_name}: {e}. Recomputing."
+                        )
+
+                # No cache hit: compute and optionally persist
+                logger.info(f"Running stage: {cached_stage_name}")
                 start_time = time.time()
                 result = original_func(*args, **kwargs)
                 duration = time.time() - start_time
-                logger.info(f"Stage {cached_stage_name} completed in {duration:.2f}s")
+                logger.info(
+                    f"Stage {cached_stage_name} completed in {duration:.2f}s (miss)"
+                )
+
+                # Try to cache the result (skip silently if not serializable)
+                try:
+                    with open(cache_file, "wb") as f:
+                        pickle.dump(result, f)
+                    with open(meta_file, "w") as f:
+                        json.dump(
+                            {
+                                "key": key_payload,
+                                "timestamp": time.time(),
+                                "duration": duration,
+                                "cache_file": str(cache_file),
+                            },
+                            f,
+                            indent=2,
+                            default=str,
+                        )
+                    logger.info(
+                        f"Cached result for {cached_stage_name} at {cache_file.name}"
+                    )
+                except Exception as e:
+                    # Still record meta for observability
+                    try:
+                        with open(meta_file, "w") as f:
+                            json.dump(
+                                {
+                                    "key": key_payload,
+                                    "timestamp": time.time(),
+                                    "duration": duration,
+                                    "cacheable": False,
+                                    "error": str(e),
+                                },
+                                f,
+                                indent=2,
+                                default=str,
+                            )
+                    except Exception:
+                        pass
+                    logger.info(
+                        f"Result not cacheable for {cached_stage_name}: {e}. Proceeding without cache."
+                    )
+
                 return result
 
             cached_func.__name__ = f"{func.__name__}_{stage_name}"
