@@ -9,7 +9,7 @@
 - `data/`, `results/`, `cache/`: Artifacts and datasets (git-ignored).
 
 ## Build, Test, and Development Commands
-- Setup (Python 3.10+): `pip install -e '.[dev]'` then `pre-commit install`.
+- Setup (Python 3.10+): `pip install -r requirements.txt` then `pre-commit install`.
 - Run CLI: `python -m src.cli --config configs/local.yaml` (see `--help`).
 - Validate config: `python -m src.cli validate configs/local.yaml`.
 - Tests: `pytest -v` (markers: `-m unit`, `-m integration`; coverage: `--cov=src --cov-report=html`).
