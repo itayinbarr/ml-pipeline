@@ -68,12 +68,18 @@ git remote add origin git@github.com:yourusername/MyProjectName.git
 git push -u origin main
 ```
 
-#### 4. Install Dependencies
+#### 4. Install Dependencies (single file)
 
 ```bash
+# Option A: Conda env (recommended)
+conda create -n research-template-env python=3.10 -y
+conda activate research-template-env
+pip install -r requirements.txt
 
-# using conda/mamba
-conda env create -f environment.yml  # If you create one
+# Option B: Virtualenv
+python -m venv .venv
+source .venv/bin/activate  # Windows: .venv\\Scripts\\activate
+pip install -r requirements.txt
 ```
 
 ### Development Workflow
@@ -229,8 +235,8 @@ This repo enforces Black formatting and isort import ordering locally via pytest
 Recommended commands:
 
 ```bash
-# Install dev dependencies (includes black, isort, flake8, mypy, pytest-black, pytest-isort)
-pip install -e '.[dev]'
+# Ensure environment is installed
+pip install -r requirements.txt
 
 # Format code (auto-fix)
 black src tests
@@ -394,9 +400,9 @@ For easy code review:
 
 ### Common Issues
 
-**Import errors**: Ensure you installed with `-e` flag: `pip install -e .[dev]`
+**Import errors**: Ensure you installed from the unified file: `pip install -r requirements.txt`
 
-**Test failures**: Check that all dependencies are installed: `pip install -e .[dev]`
+**Test failures**: Check that all dependencies are installed: `pip install -r requirements.txt`
 
 **Config validation errors**: Check YAML syntax and required fields in `schemas.py`
 
@@ -423,10 +429,10 @@ This template is designed to be adapted quickly to your use case while preservin
 ### 2) Environment and tooling
 
 - Use Python 3.10+
-- Install dev dependencies (formatting, linting, tests, etc.):
+- Install dependencies (formatting, linting, tests included via single file):
 
 ```bash
-pip install -e '.[dev]'
+pip install -r requirements.txt
 pre-commit install  # Auto-run black + isort on each commit
 pytest -v           # Verify everything is green locally
 ```
