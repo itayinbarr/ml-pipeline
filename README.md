@@ -1,6 +1,6 @@
-# Research Lab Project Template
+# ML Pipeline Template
 
-A comprehensive template for reproducible machine learning research using **Pydantic** for configuration validation and **ExCa** for experiment orchestration and caching.
+A comprehensive example of a well-architected machine learning pipeline using **Pydantic** for configuration validation and **ExCa** for experiment orchestration and caching. This project demonstrates best practices for building maintainable, reproducible ML systems.
 
 ## 🎯 Features
 
@@ -72,8 +72,8 @@ git push -u origin main
 
 ```bash
 # Option A: Conda env (recommended)
-conda create -n research-template-env python=3.10 -y
-conda activate research-template-env
+conda create -n ml-pipeline-env python=3.10 -y
+conda activate ml-pipeline-env
 pip install -r requirements.txt
 
 # Option B: Virtualenv
@@ -407,7 +407,7 @@ For easy code review:
 4. **Validate schemas**: Pydantic catches config errors early
 5. **Review caching**: ExCa ensures reproducible results
 
-## 📋 Checklist for New Students
+## 📋 Getting Started Checklist
 
 - [ ] Clone template and set new origin
 - [ ] Install dependencies
